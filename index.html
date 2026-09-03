@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heart Disease Diagnostic Tool | Clinical Binary Classifier</title>
+  <meta name="description" content="AI-powered Heart Disease Diagnostic Tool using clinical parameters to predict presence of coronary artery disease, based on the UCI Cleveland benchmark dataset.">
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="heart-icon">🫀</div>
+        <div class="logo-text">
+          <h1>CardioPredict AI</h1>
+          <p>Clinical Heart Disease Diagnostic Classifier</p>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="#assessment" class="nav-link">Diagnostic Tool</a>
+        <a href="#metrics" class="nav-link">Model Validation</a>
+        <a href="#dictionary" class="nav-link">Parameter Dictionary</a>
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="github-btn">
+          <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+          </svg>
+          GitHub Repository
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-text">
+        <span class="badge-clinical">UCI Cleveland Benchmark • Binary Classifier</span>
+        <h2>Predict Coronary Artery Disease with Clinical Biomarkers</h2>
+        <p>A validated machine learning screening system analyzing 13 cardiovascular, hemodynamic, and electrocardiographic markers to assess heart disease probability in real time.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-pill">
+          <span class="stat-val" id="stat-acc">86.9%</span>
+          <span class="stat-lbl">Test Accuracy</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-val" id="stat-rec">88.5%</span>
+          <span class="stat-lbl">Precision</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-val" id="stat-auc">0.92</span>
+          <span class="stat-lbl">ROC-AUC</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls Bar: Mode tabs & Preset Buttons -->
+    <div class="controls-bar" id="assessment">
+      <div class="mode-tabs">
+        <button type="button" class="tab-btn active" id="tab-single" onclick="switchMode('single')">Single Patient Assessment</button>
+        <button type="button" class="tab-btn" id="tab-batch" onclick="switchMode('batch')">Batch CSV Screening</button>
+      </div>
+
+      <div class="presets-container" id="presets-panel">
+        <span class="preset-label">Test Profiles:</span>
+        <button type="button" class="preset-btn" onclick="loadPreset('healthy')">
+          <span>🟢</span> Healthy Adult (35yo)
+        </button>
+        <button type="button" class="preset-btn" onclick="loadPreset('borderline')">
+          <span>🟡</span> Borderline Risk (54yo)
+        </button>
+        <button type="button" class="preset-btn" onclick="loadPreset('highRisk')">
+          <span>🔴</span> Critical Cardiac (67yo)
+        </button>
+      </div>
+    </div>
+
+    <!-- SINGLE PATIENT ASSESSMENT GRID -->
+    <div class="dashboard-grid" id="single-assessment-container">
+
+      <!-- INPUT FORM CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📋 Clinical Diagnostic Inputs</h3>
+          <button type="button" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="resetForm()">Reset Defaults</button>
+        </div>
+
+        <form id="diagnosis-form" onsubmit="event.preventDefault(); runDiagnosis();">
+
+          <!-- Section 1: Demographics -->
+          <div class="form-section">
+            <h4 class="section-title">1. Patient Profile & Demographics</h4>
+            <div class="inputs-row">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="age">Age</label>
+                  <span class="info-tip" data-tooltip="Patient chronological age in years (29 - 77)">ℹ️</span>
+                </div>
+                <div class="slider-group">
+                  <input type="range" id="age" name="age" min="25" max="80" value="54" oninput="syncVal('age', this.value)">
+                  <span class="slider-val" id="val-age">54 yrs</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="sex">Biological Sex</label>
+                  <span class="info-tip" data-tooltip="Sex assigned at birth. Statistically, males exhibit earlier coronary prevalence.">ℹ️</span>
+                </div>
+                <select id="sex" name="sex" class="form-select" onchange="runDiagnosis()">
+                  <option value="1" selected>Male (1)</option>
+                  <option value="0">Female (0)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Hemodynamics & Lipids -->
+          <div class="form-section">
+            <h4 class="section-title">2. Hemodynamics & Metabolic Panel</h4>
+            <div class="inputs-row three-col">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="trestbps">Resting BP (mm Hg)</label>
+                  <span class="info-tip" data-tooltip="Resting blood pressure on hospital admission (Normal < 120 mm Hg)">ℹ️</span>
+                </div>
+                <input type="number" id="trestbps" name="trestbps" class="form-input" min="80" max="220" value="130" oninput="runDiagnosis()">
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="chol">Serum Chol (mg/dL)</label>
+                  <span class="info-tip" data-tooltip="Total serum cholesterol (Desirable < 200, Borderline 200-239, High ≥ 240 mg/dL)">ℹ️</span>
+                </div>
+                <input type="number" id="chol" name="chol" class="form-input" min="100" max="600" value="240" oninput="runDiagnosis()">
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="fbs">Fasting Glucose > 120</label>
+                  <span class="info-tip" data-tooltip="Fasting blood sugar > 120 mg/dL indicates prediabetes/diabetes">ℹ️</span>
+                </div>
+                <select id="fbs" name="fbs" class="form-select" onchange="runDiagnosis()">
+                  <option value="0" selected>False (≤ 120 mg/dL)</option>
+                  <option value="1">True (> 120 mg/dL)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Electrocardiogram & Stress Testing -->
+          <div class="form-section">
+            <h4 class="section-title">3. Electrocardiogram & Exercise Stress</h4>
+            <div class="inputs-row">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="cp">Chest Pain Type</label>
+                  <span class="info-tip" data-tooltip="Typical Angina (0), Atypical Angina (1), Non-Anginal (2), Asymptomatic (3)">ℹ️</span>
+                </div>
+                <select id="cp" name="cp" class="form-select" onchange="runDiagnosis()">
+                  <option value="0">0: Typical Anginal Discomfort</option>
+                  <option value="1">1: Atypical Anginal Pain</option>
+                  <option value="2" selected>2: Non-Anginal Chest Pain</option>
+                  <option value="3">3: Asymptomatic Presentation</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="restecg">Resting ECG Results</label>
+                  <span class="info-tip" data-tooltip="0: Normal, 1: ST-T wave abnormality, 2: Left ventricular hypertrophy">ℹ️</span>
+                </div>
+                <select id="restecg" name="restecg" class="form-select" onchange="runDiagnosis()">
+                  <option value="0">0: Normal ECG tracing</option>
+                  <option value="1" selected>1: ST-T Wave Abnormality</option>
+                  <option value="2">2: Left Ventricular Hypertrophy (Estes)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="inputs-row three-col">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="thalach">Max Heart Rate</label>
+                  <span class="info-tip" data-tooltip="Peak heart rate achieved during treadmill stress test (bpm)">ℹ️</span>
+                </div>
+                <input type="number" id="thalach" name="thalach" class="form-input" min="60" max="220" value="150" oninput="runDiagnosis()">
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="exang">Exertional Angina</label>
+                  <span class="info-tip" data-tooltip="Angina symptoms brought on during physical exertion">ℹ️</span>
+                </div>
+                <select id="exang" name="exang" class="form-select" onchange="runDiagnosis()">
+                  <option value="0" selected>No (0)</option>
+                  <option value="1">Yes (1)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="oldpeak">ST Depression</label>
+                  <span class="info-tip" data-tooltip="ST depression induced by exercise relative to rest (in mm)">ℹ️</span>
+                </div>
+                <input type="number" step="0.1" id="oldpeak" name="oldpeak" class="form-input" min="0" max="6.5" value="1.0" oninput="runDiagnosis()">
+              </div>
+            </div>
+
+            <div class="inputs-row">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="slope">Peak ST Segment Slope</label>
+                  <span class="info-tip" data-tooltip="0: Upsloping, 1: Flat, 2: Downsloping ST segment">ℹ️</span>
+                </div>
+                <select id="slope" name="slope" class="form-select" onchange="runDiagnosis()">
+                  <option value="0">0: Upsloping (Often normal)</option>
+                  <option value="1">1: Flat (Equivocal / Ischemic)</option>
+                  <option value="2" selected>2: Downsloping (Severe Ischemia)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Advanced Fluoroscopy & Hematology -->
+          <div class="form-section">
+            <h4 class="section-title">4. Fluoroscopy & Thalassemia Findings</h4>
+            <div class="inputs-row">
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="ca">Major Vessels (0-3)</label>
+                  <span class="info-tip" data-tooltip="Number of major coronary vessels colored by fluoroscopy (0 to 3)">ℹ️</span>
+                </div>
+                <select id="ca" name="ca" class="form-select" onchange="runDiagnosis()">
+                  <option value="0" selected>0 Vessels (No fluoroscopic calcification)</option>
+                  <option value="1">1 Vessel Colored</option>
+                  <option value="2">2 Vessels Colored</option>
+                  <option value="3">3 Vessels Colored</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <div class="label-wrapper">
+                  <label class="form-label" for="thal">Thallium Stress Scintigraphy</label>
+                  <span class="info-tip" data-tooltip="Perfusion defect: 1=Normal, 2=Fixed Defect, 3=Reversible Defect">ℹ️</span>
+                </div>
+                <select id="thal" name="thal" class="form-select" onchange="runDiagnosis()">
+                  <option value="1">1: Normal Blood Flow</option>
+                  <option value="2" selected>2: Fixed Perfusion Defect (Prior MI)</option>
+                  <option value="3">3: Reversible Perfusion Defect (Ischemia)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            <span>⚡</span> Recompute Cardiac Risk Assessment
+          </button>
+        </form>
+      </div>
+
+      <!-- RESULTS & ANALYTICS CARD -->
+      <div class="card results-card" id="results-section">
+        
+        <!-- Print Header -->
+        <div class="print-header">
+          <h2>CardioPredict AI - Comprehensive Cardiac Risk Report</h2>
+          <p id="print-date">Generated on: </p>
+        </div>
+
+        <div class="card-header">
+          <h3 class="card-title">📊 Diagnostic Evaluation</h3>
+          <span class="risk-badge" id="risk-badge">Calculating...</span>
+        </div>
+
+        <!-- Gauge Section -->
+        <div class="gauge-section">
+          <div class="gauge-canvas-wrapper">
+            <canvas id="gaugeCanvas" width="280" height="150"></canvas>
+            <div class="gauge-center-text">
+              <div class="score-percent" id="risk-percent">--%</div>
+              <div class="score-label">Disease Probability</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinical Urgency -->
+        <div class="urgency-callout">
+          <div class="urgency-title">
+            <span>⚕️</span> <span id="urgency-headline">Clinical Status</span>
+          </div>
+          <p class="urgency-text" id="urgency-body">Evaluating clinical parameters...</p>
+        </div>
+
+        <!-- Flagged Markers -->
+        <div class="factors-list">
+          <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Key Clinical Observations:</h4>
+          <div id="flagged-factors-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Radar Chart Container -->
+        <div style="margin-top: 1.25rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Patient Profile vs. Reference Baseline</h4>
+          <div class="chart-box">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Feature Contribution Bar Chart -->
+        <div style="margin-top: 1.25rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Top Risk Contributors (Log-Odds Impact)</h4>
+          <div class="chart-box">
+            <canvas id="contribChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Clinical Care Plan -->
+        <div style="margin-top: 1.25rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--teal);">Recommended Care Directives:</h4>
+          <ul id="care-plan-list" style="font-size: 0.82rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.6;">
+            <!-- Populated dynamically -->
+          </ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-buttons">
+          <button type="button" class="btn-secondary" onclick="window.print()">
+            <span>🖨️</span> Print / Save Report
+          </button>
+          <button type="button" class="btn-secondary" onclick="copySummaryToClipboard()">
+            <span>📋</span> Copy Clinical Summary
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- BATCH CSV SCREENING SECTION -->
+    <div class="batch-section" id="batch-screening-container">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">📁 Batch Patient CSV Screening</h3>
+          <button type="button" class="btn-secondary" onclick="downloadSampleCsv()">📥 Download Sample CSV Template</button>
+        </div>
+
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="drop-icon">📂</div>
+          <h4 style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Upload Patients CSV File</h4>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Drag and drop your CSV file here, or click to browse. File should contain the 13 clinical columns.</p>
+          <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)">
+        </div>
+
+        <div id="batch-results-area" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="font-weight: 700;">Batch Classification Results (<span id="batch-count">0</span> patients evaluated)</h4>
+            <button type="button" class="btn-secondary" onclick="exportBatchResultsCsv()">💾 Export Results to CSV</button>
+          </div>
+
+          <div class="batch-table-wrapper">
+            <table class="data-table" id="batch-table">
+              <thead>
+                <tr>
+                  <th>Patient ID</th>
+                  <th>Age/Sex</th>
+                  <th>BP/Chol</th>
+                  <th>Chest Pain</th>
+                  <th>Risk Score</th>
+                  <th>Predicted Class</th>
+                  <th>Risk Tier</th>
+                  <th>Recommended Follow-up</th>
+                </tr>
+              </thead>
+              <tbody id="batch-tbody">
+                <!-- Rows injected here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCIENTIFIC MODEL VALIDATION SECTION -->
+    <section class="metrics-section" id="metrics">
+      <div style="margin-bottom: 1.5rem;">
+        <span class="badge-clinical">Empirical Validation</span>
+        <h3 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 0.25rem;">Model Architecture & Performance Benchmark</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Trained on the standardized Cleveland Heart Disease dataset (UCI Repository) with stratified cross-validation and L2 regularization.</p>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h4>Test Set Accuracy</h4>
+          <div class="metric-value">86.89%</div>
+          <p>5-Fold Stratified CV: 83.50% (±4.0%)</p>
+        </div>
+        <div class="metric-card">
+          <h4>Clinical Precision (PPV)</h4>
+          <div class="metric-value" style="color: #10b981;">88.46%</div>
+          <p>High positive predictive confidence</p>
+        </div>
+        <div class="metric-card">
+          <h4>Sensitivity (Recall)</h4>
+          <div class="metric-value">82.14%</div>
+          <p>Identifies true positive cardiac cases</p>
+        </div>
+        <div class="metric-card">
+          <h4>ROC-AUC Score</h4>
+          <div class="metric-value" style="color: #0284c7;">0.9232</div>
+          <p>Exceptional discriminative separation</p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Confusion Matrix Card -->
+        <div class="card">
+          <h4 style="font-weight: 700; font-size: 1rem; margin-bottom: 0.75rem;">Test Set Confusion Matrix (N = 61)</h4>
+          <table class="cm-table">
+            <thead>
+              <tr>
+                <th>Actual \ Predicted</th>
+                <th>Predicted Healthy (0)</th>
+                <th>Predicted Heart Disease (1)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Actual Healthy (0)</th>
+                <td style="background: #ecfdf5; font-weight: 700; color: #047857;">TN = 30</td>
+                <td style="background: #fef2f2; font-weight: 600; color: #b91c1c;">FP = 3</td>
+              </tr>
+              <tr>
+                <th>Actual Heart Disease (1)</th>
+                <td style="background: #fef2f2; font-weight: 600; color: #b91c1c;">FN = 5</td>
+                <td style="background: #ecfdf5; font-weight: 700; color: #047857;">TP = 23</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem;">
+            *Notice the low False Positive rate (FP = 3, 90.9% specificity), avoiding unnecessary invasive coronary interventions.
+          </p>
+        </div>
+
+        <!-- ROC Curve Card -->
+        <div class="card">
+          <h4 style="font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem;">Receiver Operating Characteristic (ROC)</h4>
+          <div class="chart-box">
+            <canvas id="rocChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARAMETER DICTIONARY SECTION -->
+    <section class="param-dictionary" id="dictionary">
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">📖 Clinical Features Reference Dictionary</h3>
+        <div class="param-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Feature Code</th>
+                <th>Clinical Parameter</th>
+                <th>Units / Encoding</th>
+                <th>Reference Range</th>
+                <th>Diagnostic Significance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>age</code></td>
+                <td>Patient Age</td>
+                <td>Years</td>
+                <td>29 - 77 years</td>
+                <td>Atherosclerosis and coronary calcification incidence increase progressively with age.</td>
+              </tr>
+              <tr>
+                <td><code>sex</code></td>
+                <td>Biological Sex</td>
+                <td>1 = Male, 0 = Female</td>
+                <td>Binary</td>
+                <td>Estrogen offers premenopausal vascular protection; males historically present earlier.</td>
+              </tr>
+              <tr>
+                <td><code>cp</code></td>
+                <td>Chest Pain Type</td>
+                <td>0: Typical Angina, 1: Atypical, 2: Non-Anginal, 3: Asymptomatic</td>
+                <td>Categorical (0-3)</td>
+                <td>Gold standard symptom classifier for myocardial ischemia localization.</td>
+              </tr>
+              <tr>
+                <td><code>trestbps</code></td>
+                <td>Resting Blood Pressure</td>
+                <td>mm Hg</td>
+                <td>&lt; 120 mm Hg (Normal)</td>
+                <td>Sustained systemic hypertension damages endothelial vascular lining.</td>
+              </tr>
+              <tr>
+                <td><code>chol</code></td>
+                <td>Serum Cholesterol</td>
+                <td>mg/dL</td>
+                <td>&lt; 200 mg/dL</td>
+                <td>Atherogenic LDL fraction leads to arterial wall plaque accumulation.</td>
+              </tr>
+              <tr>
+                <td><code>fbs</code></td>
+                <td>Fasting Blood Sugar &gt; 120</td>
+                <td>1 = True, 0 = False</td>
+                <td>&lt; 100 mg/dL</td>
+                <td>Markers for diabetes mellitus, an independent vascular risk accelerator.</td>
+              </tr>
+              <tr>
+                <td><code>restecg</code></td>
+                <td>Resting Electrocardiography</td>
+                <td>0: Normal, 1: ST-T wave abnormality, 2: LV Hypertrophy</td>
+                <td>Categorical (0-2)</td>
+                <td>Detects baseline myocardial strain, ischemia, or chamber enlargement.</td>
+              </tr>
+              <tr>
+                <td><code>thalach</code></td>
+                <td>Maximum Heart Rate</td>
+                <td>Beats Per Minute (bpm)</td>
+                <td>Chronotropic response</td>
+                <td>Chronotropic incompetence (inability to reach age-predicted max HR) indicates ischemic burden.</td>
+              </tr>
+              <tr>
+                <td><code>exang</code></td>
+                <td>Exercise-Induced Angina</td>
+                <td>1 = Yes, 0 = No</td>
+                <td>Binary</td>
+                <td>Strong indicator of hemodynamically significant coronary luminal stenosis.</td>
+              </tr>
+              <tr>
+                <td><code>oldpeak</code></td>
+                <td>ST Depression</td>
+                <td>mm</td>
+                <td>0.0 - 6.2 mm</td>
+                <td>Direct electrocardiographic correlate of subendocardial myocardial ischemia during exertion.</td>
+              </tr>
+              <tr>
+                <td><code>slope</code></td>
+                <td>Peak Exercise ST Slope</td>
+                <td>0: Upsloping, 1: Flat, 2: Downsloping</td>
+                <td>Categorical (0-2)</td>
+                <td>Downsloping and horizontal ST segments correlate with severe multi-vessel disease.</td>
+              </tr>
+              <tr>
+                <td><code>ca</code></td>
+                <td>Vessels Colored by Fluoroscopy</td>
+                <td>0 - 3 major vessels</td>
+                <td>0 (Normal)</td>
+                <td>Direct visualization of calcified coronary arteries via fluoroscopy.</td>
+              </tr>
+              <tr>
+                <td><code>thal</code></td>
+                <td>Thallium Scintigraphy</td>
+                <td>1: Normal, 2: Fixed Defect, 3: Reversible Defect</td>
+                <td>Categorical (1-3)</td>
+                <td>Nuclear imaging delineating reversible ischemia versus permanent infarction scar tissue.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div>
+        <h4 style="font-weight: 700; color: var(--text-main); margin-bottom: 0.35rem;">CardioPredict AI Project</h4>
+        <p>Built with Scikit-Learn, HTML5, Vanilla JavaScript, and Chart.js.</p>
+        <p style="margin-top: 0.25rem;">Dataset Citation: Detrano, R., et al. (1989). <em>Cleveland Heart Disease Dataset</em>. UCI Machine Learning Repository.</p>
+      </div>
+
+      <div class="disclaimer-box">
+        <strong>⚠️ Clinical Research & Educational Disclaimer:</strong>
+        This software is an investigational decision-support prototype created for computer science and medical informatics demonstration. It is not approved as a medical device for primary clinical diagnosis. Clinical decisions must always be rendered by licensed physicians.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/model-data.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/chart-config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
